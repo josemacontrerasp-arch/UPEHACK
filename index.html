@@ -268,11 +268,6 @@
   .ai-head .ai-eyebrow{font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--brass-light);}
   .ai-head .ai-title{font-family:'Fraunces',serif; font-size:19px; font-weight:600; margin-top:3px;}
   .ai-head .ai-sub{font-size:11.5px; color:#93a0b8; margin-top:2px;}
-  .ai-gear{
-    position:absolute; top:12px; right:12px; z-index:1;
-    background:none; border:none; color:#93a0b8; font-size:16px; cursor:pointer; padding:4px;
-  }
-  .ai-gear:hover{color:var(--brass-light);}
   .ai-msgs{flex:1; overflow-y:auto; padding:16px 14px; display:flex; flex-direction:column; gap:12px;}
   .ai-msg{max-width:88%; padding:10px 13px; border-radius:12px; font-size:13.5px; line-height:1.55;}
   .ai-msg.user{
@@ -309,17 +304,6 @@
   }
   .ai-send:hover{background:#0d1729;}
   .ai-send:disabled{opacity:.5; cursor:default;}
-  .ai-setup{padding:22px 18px; display:flex; flex-direction:column; gap:10px;}
-  .ai-setup p{font-size:13px; line-height:1.55; color:var(--ink-soft); margin:0;}
-  .ai-setup input{
-    border:1px solid var(--line); border-radius:10px; padding:10px 12px;
-    font-family:'IBM Plex Mono',monospace; font-size:12.5px; background:#fff;
-  }
-  .ai-setup .hint{font-size:11px; color:var(--muted);}
-  .ai-setup button{
-    background:var(--ink); color:#fff8ec; border:none; border-radius:10px;
-    padding:11px; font-weight:600; font-size:13.5px; cursor:pointer;
-  }
 </style>
 </head>
 <body>
@@ -398,13 +382,6 @@
     <div class="ai-eyebrow">Oficina de Asesoría · IA</div>
     <div class="ai-title">Tu asesor de intercambio</div>
     <div class="ai-sub">Conoce los convenios y te ayuda a elegir destino</div>
-    <button class="ai-gear" id="aiGear" title="Cambiar API key" aria-label="Configurar API key">⚙</button>
-  </div>
-  <div class="ai-setup" id="aiSetup" style="display:none;">
-    <p><b>Para activar al asesor</b>, pega tu API key de OpenAI. Se guarda solo en este navegador (localStorage) y se usa únicamente para hablar con el modelo.</p>
-    <input type="password" id="aiKeyInput" placeholder="sk-..." autocomplete="off">
-    <button id="aiKeySave">Activar asesor</button>
-    <div class="hint">Consíguela en platform.openai.com → API keys. Nunca la subas a GitHub.</div>
   </div>
   <div class="ai-msgs" id="aiMsgs"></div>
   <div class="ai-chips" id="aiChips"></div>
@@ -654,19 +631,9 @@ updateHero();
 render();
 
 /* ================== AI Advisor (OpenAI) ================== */
-const AI_MODEL = "gpt-4o-mini";
-const AI_KEY_STORE = "upex_openai_key";
+const AI_ENDPOINT = "/api/chat"; // backend en Vercel: la API key vive en OPENAI_API_KEY (env var), nunca en el cliente
 const aiHistory = [];
 let aiBusy = false;
-
-const aiStore = (()=>{
-  let mem = {};
-  try{ localStorage.setItem("__t","1"); localStorage.removeItem("__t");
-    return { get:k=>localStorage.getItem(k), set:(k,v)=>localStorage.setItem(k,v), del:k=>localStorage.removeItem(k) };
-  }catch(e){
-    return { get:k=>mem[k]??null, set:(k,v)=>{mem[k]=v;}, del:k=>{delete mem[k];} };
-  }
-})();
 
 function aiCatalogContext(){
   const lines = DATA.map(d=>{
@@ -729,17 +696,8 @@ function aiAddMsg(role, html){
   return el;
 }
 
-function aiShowSetup(show){
-  document.getElementById("aiSetup").style.display = show?"flex":"none";
-  document.getElementById("aiMsgs").style.display = show?"none":"flex";
-  document.getElementById("aiChips").style.display = show?"none":"flex";
-  document.getElementById("aiInputRow").style.display = show?"none":"flex";
-}
-
 async function aiSend(text){
   if(aiBusy || !text.trim()) return;
-  const key = aiStore.get(AI_KEY_STORE);
-  if(!key){ aiShowSetup(true); return; }
   aiBusy = true;
   document.getElementById("aiSend").disabled = true;
   document.getElementById("aiChips").innerHTML = "";
@@ -749,25 +707,20 @@ async function aiSend(text){
   typing.className = "ai-typing"; typing.textContent = "ESCRIBIENDO…";
   document.getElementById("aiMsgs").appendChild(typing);
   try{
-    const res = await fetch("https://api.openai.com/v1/chat/completions",{
+    const res = await fetch(AI_ENDPOINT,{
       method:"POST",
-      headers:{ "Content-Type":"application/json", "Authorization":"Bearer "+key },
+      headers:{ "Content-Type":"application/json" },
       body: JSON.stringify({
-        model: AI_MODEL,
-        stream: true,
-        temperature: 0.4,
         messages: [{role:"system", content: aiSystemPrompt()}, ...aiHistory.slice(-12)]
       })
     });
     if(!res.ok){
       typing.remove();
-      if(res.status===401){
-        aiStore.del(AI_KEY_STORE);
-        aiAddMsg("bot err","API key inválida o vencida. Vuelve a configurarla con el engrane ⚙.");
-      } else {
-        const errBody = await res.text().catch(()=> "");
-        aiAddMsg("bot err","Error "+res.status+" de OpenAI. "+esc(errBody.slice(0,200)));
-      }
+      const errBody = await res.text().catch(()=> "");
+      let msg = "Error "+res.status+" del asesor.";
+      try{ const j = JSON.parse(errBody); if(j.error) msg += " "+(typeof j.error==="string"?j.error:j.error.message||""); }
+      catch(e){ msg += " "+errBody.slice(0,200); }
+      aiAddMsg("bot err", esc(msg));
       return;
     }
     typing.remove();
@@ -800,7 +753,7 @@ async function aiSend(text){
     aiHistory.push({role:"assistant", content: full});
   }catch(e){
     typing.remove();
-    aiAddMsg("bot err","No se pudo conectar con OpenAI. Revisa tu internet. ("+esc(String(e.message||e))+")");
+    aiAddMsg("bot err","No se pudo conectar con el asesor. Revisa tu internet o que el sitio esté corriendo en Vercel. ("+esc(String(e.message||e))+")");
   }finally{
     aiBusy = false;
     document.getElementById("aiSend").disabled = false;
@@ -829,28 +782,13 @@ function setupAI(){
   document.getElementById("aiFab").addEventListener("click", ()=>{
     panel.classList.toggle("open");
     if(panel.classList.contains("open")){
-      if(!aiStore.get(AI_KEY_STORE)){ aiShowSetup(true); }
-      else if(!document.getElementById("aiMsgs").children.length){
-        aiShowSetup(false);
+      if(!document.getElementById("aiMsgs").children.length){
         aiAddMsg("bot","¡Hola! Soy tu <b>asesor de intercambio UP</b> 🛂. Conozco los <b>"+DATA.length+"</b> convenios vigentes. Pregúntame por país, idioma, presupuesto o requisitos de TOEFL.");
         aiRenderChips();
       }
       document.getElementById("aiInput").focus();
     }
   });
-  document.getElementById("aiGear").addEventListener("click", ()=> aiShowSetup(true));
-  document.getElementById("aiKeySave").addEventListener("click", ()=>{
-    const v = document.getElementById("aiKeyInput").value.trim();
-    if(!v) return;
-    aiStore.set(AI_KEY_STORE, v);
-    document.getElementById("aiKeyInput").value = "";
-    aiShowSetup(false);
-    if(!document.getElementById("aiMsgs").children.length){
-      aiAddMsg("bot","¡Listo! Soy tu <b>asesor de intercambio UP</b> 🛂. Conozco los <b>"+DATA.length+"</b> convenios vigentes. Pregúntame por país, idioma, presupuesto o requisitos de TOEFL.");
-      aiRenderChips();
-    }
-  });
-  document.getElementById("aiKeyInput").addEventListener("keydown", e=>{ if(e.key==="Enter") document.getElementById("aiKeySave").click(); });
   const input = document.getElementById("aiInput");
   document.getElementById("aiSend").addEventListener("click", ()=>{ const t=input.value; input.value=""; aiSend(t); });
   input.addEventListener("keydown", e=>{ if(e.key==="Enter"){ const t=input.value; input.value=""; aiSend(t); } });
