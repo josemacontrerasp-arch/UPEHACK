@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -238,6 +238,88 @@
   }
 
   ::selection{background:var(--brass-light); color:#16233e;}
+
+  /* ---------- AI Advisor (consular office look) ---------- */
+  .ai-fab{
+    position:fixed; right:22px; bottom:22px; z-index:60;
+    width:60px; height:60px; border-radius:50%;
+    background:linear-gradient(160deg,#16233e,#0d1729);
+    border:2px solid var(--brass-light);
+    color:#f4efe0; font-size:26px; cursor:pointer;
+    box-shadow:0 10px 30px rgba(19,32,56,.35);
+    display:flex; align-items:center; justify-content:center;
+    transition:transform .15s ease, box-shadow .15s ease;
+  }
+  .ai-fab:hover{transform:translateY(-2px) scale(1.04); box-shadow:0 14px 36px rgba(19,32,56,.45);}
+  .ai-panel{
+    position:fixed; right:22px; bottom:94px; z-index:60;
+    width:min(400px, calc(100vw - 32px));
+    height:min(600px, calc(100vh - 130px));
+    background:#fbf8f0; border:1px solid var(--line); border-radius:16px;
+    box-shadow:0 18px 50px rgba(19,32,56,.30);
+    display:none; flex-direction:column; overflow:hidden;
+  }
+  .ai-panel.open{display:flex;}
+  .ai-head{
+    background:linear-gradient(160deg,#16233e 0%,#0f1a30 70%);
+    color:#f4efe0; padding:14px 16px; position:relative; flex-shrink:0;
+  }
+  .ai-head::before{content:""; position:absolute; inset:6px; border:1px solid rgba(201,162,75,.35); border-radius:8px; pointer-events:none;}
+  .ai-head .ai-eyebrow{font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--brass-light);}
+  .ai-head .ai-title{font-family:'Fraunces',serif; font-size:19px; font-weight:600; margin-top:3px;}
+  .ai-head .ai-sub{font-size:11.5px; color:#93a0b8; margin-top:2px;}
+  .ai-gear{
+    position:absolute; top:12px; right:12px; z-index:1;
+    background:none; border:none; color:#93a0b8; font-size:16px; cursor:pointer; padding:4px;
+  }
+  .ai-gear:hover{color:var(--brass-light);}
+  .ai-msgs{flex:1; overflow-y:auto; padding:16px 14px; display:flex; flex-direction:column; gap:12px;}
+  .ai-msg{max-width:88%; padding:10px 13px; border-radius:12px; font-size:13.5px; line-height:1.55;}
+  .ai-msg.user{
+    align-self:flex-end; background:var(--ink); color:#fff8ec;
+    border-bottom-right-radius:4px;
+  }
+  .ai-msg.bot{
+    align-self:flex-start; background:#fff; border:1px dashed var(--line);
+    border-bottom-left-radius:4px; color:var(--ink);
+  }
+  .ai-msg.bot b{color:#7a5a14;}
+  .ai-msg.bot ul{margin:6px 0; padding-left:18px;}
+  .ai-msg.bot li{margin:3px 0;}
+  .ai-msg.err{background:var(--stamp-red-bg); border:1px solid var(--stamp-red); color:var(--stamp-red);}
+  .ai-typing{align-self:flex-start; font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--muted); letter-spacing:.1em;}
+  .ai-chips{display:flex; flex-wrap:wrap; gap:6px; padding:0 14px 8px; flex-shrink:0;}
+  .ai-chip{
+    font-size:11.5px; font-weight:600; background:#fff8ec; border:1px solid var(--line);
+    color:var(--ink-soft); border-radius:999px; padding:5px 11px; cursor:pointer;
+    transition:background .12s ease;
+  }
+  .ai-chip:hover{background:#fff; border-color:var(--brass);}
+  .ai-inputrow{
+    display:flex; gap:8px; padding:10px 12px 12px; border-top:1px dashed var(--line);
+    background:#f6f1e4; flex-shrink:0;
+  }
+  .ai-inputrow input{
+    flex:1; border:1px solid var(--line); border-radius:10px; padding:10px 12px;
+    font-family:'Inter'; font-size:13.5px; background:#fff; color:var(--ink);
+  }
+  .ai-send{
+    background:var(--ink); color:#fff8ec; border:none; border-radius:10px;
+    padding:0 16px; font-weight:600; font-size:14px; cursor:pointer;
+  }
+  .ai-send:hover{background:#0d1729;}
+  .ai-send:disabled{opacity:.5; cursor:default;}
+  .ai-setup{padding:22px 18px; display:flex; flex-direction:column; gap:10px;}
+  .ai-setup p{font-size:13px; line-height:1.55; color:var(--ink-soft); margin:0;}
+  .ai-setup input{
+    border:1px solid var(--line); border-radius:10px; padding:10px 12px;
+    font-family:'IBM Plex Mono',monospace; font-size:12.5px; background:#fff;
+  }
+  .ai-setup .hint{font-size:11px; color:var(--muted);}
+  .ai-setup button{
+    background:var(--ink); color:#fff8ec; border:none; border-radius:10px;
+    padding:11px; font-weight:600; font-size:13.5px; cursor:pointer;
+  }
 </style>
 </head>
 <body>
@@ -307,6 +389,29 @@
     Datos tomados del documento oficial de convenios de International Affairs de la UP (informativos, no absolutos).
     Los indicadores de costo son una estimación orientativa del alumno según tipo de convenio y costo de vida del país — confirma cifras exactas con tu coordinadora de intercambio.
   </footer>
+</div>
+
+<!-- ---------- AI Advisor widget ---------- -->
+<button class="ai-fab" id="aiFab" title="Asesor de intercambio" aria-label="Abrir asesor de intercambio">🛂</button>
+<div class="ai-panel" id="aiPanel" role="dialog" aria-label="Asesor de intercambio">
+  <div class="ai-head">
+    <div class="ai-eyebrow">Oficina de Asesoría · IA</div>
+    <div class="ai-title">Tu asesor de intercambio</div>
+    <div class="ai-sub">Conoce los convenios y te ayuda a elegir destino</div>
+    <button class="ai-gear" id="aiGear" title="Cambiar API key" aria-label="Configurar API key">⚙</button>
+  </div>
+  <div class="ai-setup" id="aiSetup" style="display:none;">
+    <p><b>Para activar al asesor</b>, pega tu API key de OpenAI. Se guarda solo en este navegador (localStorage) y se usa únicamente para hablar con el modelo.</p>
+    <input type="password" id="aiKeyInput" placeholder="sk-..." autocomplete="off">
+    <button id="aiKeySave">Activar asesor</button>
+    <div class="hint">Consíguela en platform.openai.com → API keys. Nunca la subas a GitHub.</div>
+  </div>
+  <div class="ai-msgs" id="aiMsgs"></div>
+  <div class="ai-chips" id="aiChips"></div>
+  <div class="ai-inputrow" id="aiInputRow">
+    <input type="text" id="aiInput" placeholder="Ej. ¿A dónde puedo ir sin TOEFL?" autocomplete="off">
+    <button class="ai-send" id="aiSend">➤</button>
+  </div>
 </div>
 
 <script>
@@ -547,6 +652,211 @@ setupQuickActions();
 setupFilters();
 updateHero();
 render();
+
+/* ================== AI Advisor (OpenAI) ================== */
+const AI_MODEL = "gpt-4o-mini";
+const AI_KEY_STORE = "upex_openai_key";
+const aiHistory = [];
+let aiBusy = false;
+
+const aiStore = (()=>{
+  let mem = {};
+  try{ localStorage.setItem("__t","1"); localStorage.removeItem("__t");
+    return { get:k=>localStorage.getItem(k), set:(k,v)=>localStorage.setItem(k,v), del:k=>localStorage.removeItem(k) };
+  }catch(e){
+    return { get:k=>mem[k]??null, set:(k,v)=>{mem[k]=v;}, del:k=>{delete mem[k];} };
+  }
+})();
+
+function aiCatalogContext(){
+  const lines = DATA.map(d=>{
+    const notas = (d.notas||"").replace(/\s+/g," ").slice(0,110);
+    return [d.pais, d.universidad, d.ciudad, "idioma: "+(d.idioma||"?"),
+      "TOEFL iBT: "+(d.toefl_ibt??"no requerido/indicado"),
+      d.convenio_raw, "costo(1-5): "+(d.cost_tier??"?"), notas].join(" | ");
+  });
+  return lines.join("\n");
+}
+
+function aiSystemPrompt(){
+  const filtros = [];
+  if(state.carrera) filtros.push("carrera: "+state.carrera);
+  if(state.pais) filtros.push("país: "+state.pais);
+  if(state.idiomas.size) filtros.push("idiomas: "+Array.from(state.idiomas).join(", "));
+  if(state.soloBarato) filtros.push("solo convenios con reciprocidad");
+  if(state.search) filtros.push("búsqueda: "+state.search);
+  return `Eres el "Asesor de Intercambio UP", un agente experto de la Universidad Panamericana (México) que ayuda a alumnos a planear su intercambio académico (estilo Erasmus).
+Hablas en español, cercano y directo, como un buen coordinador de intercambios.
+
+REGLAS:
+- Para afirmaciones sobre universidades, convenios, TOEFL, idiomas o costos usa EXCLUSIVAMENTE el catálogo de abajo. Si algo no está en el catálogo, dilo y sugiere confirmarlo con International Affairs de la UP.
+- "Con reciprocidad" = el alumno paga colegiatura solo en la UP (opción más barata). "Sin reciprocidad" = paga en la universidad destino.
+- costo(1-5) es un estimado orientativo de costo de vida/total (1 = más barato).
+- Recomienda máximo 3-5 opciones concretas por respuesta, con universidad, país, idioma y requisito TOEFL.
+- Puedes dar orientación general sobre trámites, visas, presupuesto y vida en el extranjero, aclarando que son orientaciones generales.
+- Respuestas breves: usa **negritas** y listas con viñetas (-). Nada de tablas.
+
+FILTROS ACTIVOS DEL ALUMNO AHORA MISMO: ${filtros.length?filtros.join("; "):"ninguno"}.
+
+CATÁLOGO DE CONVENIOS UP (${DATA.length} universidades):
+${aiCatalogContext()}`;
+}
+
+function aiMdLite(t){
+  let h = esc(t);
+  h = h.replace(/\*\*(.+?)\*\*/g,"<b>$1</b>");
+  const lines = h.split("\n");
+  let out = "", inList = false;
+  for(const ln of lines){
+    if(/^\s*[-•]\s+/.test(ln)){
+      if(!inList){ out += "<ul>"; inList = true; }
+      out += "<li>"+ln.replace(/^\s*[-•]\s+/,"")+"</li>";
+    } else {
+      if(inList){ out += "</ul>"; inList = false; }
+      if(ln.trim()) out += ln+"<br>";
+    }
+  }
+  if(inList) out += "</ul>";
+  return out;
+}
+
+function aiAddMsg(role, html){
+  const el = document.createElement("div");
+  el.className = "ai-msg "+role;
+  el.innerHTML = html;
+  document.getElementById("aiMsgs").appendChild(el);
+  el.scrollIntoView({behavior:"smooth", block:"end"});
+  return el;
+}
+
+function aiShowSetup(show){
+  document.getElementById("aiSetup").style.display = show?"flex":"none";
+  document.getElementById("aiMsgs").style.display = show?"none":"flex";
+  document.getElementById("aiChips").style.display = show?"none":"flex";
+  document.getElementById("aiInputRow").style.display = show?"none":"flex";
+}
+
+async function aiSend(text){
+  if(aiBusy || !text.trim()) return;
+  const key = aiStore.get(AI_KEY_STORE);
+  if(!key){ aiShowSetup(true); return; }
+  aiBusy = true;
+  document.getElementById("aiSend").disabled = true;
+  document.getElementById("aiChips").innerHTML = "";
+  aiAddMsg("user", esc(text));
+  aiHistory.push({role:"user", content:text});
+  const typing = document.createElement("div");
+  typing.className = "ai-typing"; typing.textContent = "ESCRIBIENDO…";
+  document.getElementById("aiMsgs").appendChild(typing);
+  try{
+    const res = await fetch("https://api.openai.com/v1/chat/completions",{
+      method:"POST",
+      headers:{ "Content-Type":"application/json", "Authorization":"Bearer "+key },
+      body: JSON.stringify({
+        model: AI_MODEL,
+        stream: true,
+        temperature: 0.4,
+        messages: [{role:"system", content: aiSystemPrompt()}, ...aiHistory.slice(-12)]
+      })
+    });
+    if(!res.ok){
+      typing.remove();
+      if(res.status===401){
+        aiStore.del(AI_KEY_STORE);
+        aiAddMsg("bot err","API key inválida o vencida. Vuelve a configurarla con el engrane ⚙.");
+      } else {
+        const errBody = await res.text().catch(()=> "");
+        aiAddMsg("bot err","Error "+res.status+" de OpenAI. "+esc(errBody.slice(0,200)));
+      }
+      return;
+    }
+    typing.remove();
+    const botEl = aiAddMsg("bot","");
+    let full = "";
+    const reader = res.body.getReader();
+    const dec = new TextDecoder();
+    let buf = "";
+    while(true){
+      const {done, value} = await reader.read();
+      if(done) break;
+      buf += dec.decode(value, {stream:true});
+      const parts = buf.split("\n");
+      buf = parts.pop();
+      for(const p of parts){
+        const line = p.trim();
+        if(!line.startsWith("data:")) continue;
+        const payload = line.slice(5).trim();
+        if(payload==="[DONE]") continue;
+        try{
+          const delta = JSON.parse(payload).choices?.[0]?.delta?.content;
+          if(delta){
+            full += delta;
+            botEl.innerHTML = aiMdLite(full);
+            botEl.scrollIntoView({block:"end"});
+          }
+        }catch(e){}
+      }
+    }
+    aiHistory.push({role:"assistant", content: full});
+  }catch(e){
+    typing.remove();
+    aiAddMsg("bot err","No se pudo conectar con OpenAI. Revisa tu internet. ("+esc(String(e.message||e))+")");
+  }finally{
+    aiBusy = false;
+    document.getElementById("aiSend").disabled = false;
+  }
+}
+
+function aiRenderChips(){
+  const sugerencias = [
+    "¿A dónde puedo ir sin TOEFL?",
+    "Opciones baratas en Europa",
+    "Quiero ir a España, ¿qué hay?",
+    "¿Qué significa con reciprocidad?"
+  ];
+  const chipsEl = document.getElementById("aiChips");
+  chipsEl.innerHTML = "";
+  for(const s of sugerencias){
+    const c = document.createElement("button");
+    c.className = "ai-chip"; c.textContent = s;
+    c.addEventListener("click", ()=> aiSend(s));
+    chipsEl.appendChild(c);
+  }
+}
+
+function setupAI(){
+  const panel = document.getElementById("aiPanel");
+  document.getElementById("aiFab").addEventListener("click", ()=>{
+    panel.classList.toggle("open");
+    if(panel.classList.contains("open")){
+      if(!aiStore.get(AI_KEY_STORE)){ aiShowSetup(true); }
+      else if(!document.getElementById("aiMsgs").children.length){
+        aiShowSetup(false);
+        aiAddMsg("bot","¡Hola! Soy tu <b>asesor de intercambio UP</b> 🛂. Conozco los <b>"+DATA.length+"</b> convenios vigentes. Pregúntame por país, idioma, presupuesto o requisitos de TOEFL.");
+        aiRenderChips();
+      }
+      document.getElementById("aiInput").focus();
+    }
+  });
+  document.getElementById("aiGear").addEventListener("click", ()=> aiShowSetup(true));
+  document.getElementById("aiKeySave").addEventListener("click", ()=>{
+    const v = document.getElementById("aiKeyInput").value.trim();
+    if(!v) return;
+    aiStore.set(AI_KEY_STORE, v);
+    document.getElementById("aiKeyInput").value = "";
+    aiShowSetup(false);
+    if(!document.getElementById("aiMsgs").children.length){
+      aiAddMsg("bot","¡Listo! Soy tu <b>asesor de intercambio UP</b> 🛂. Conozco los <b>"+DATA.length+"</b> convenios vigentes. Pregúntame por país, idioma, presupuesto o requisitos de TOEFL.");
+      aiRenderChips();
+    }
+  });
+  document.getElementById("aiKeyInput").addEventListener("keydown", e=>{ if(e.key==="Enter") document.getElementById("aiKeySave").click(); });
+  const input = document.getElementById("aiInput");
+  document.getElementById("aiSend").addEventListener("click", ()=>{ const t=input.value; input.value=""; aiSend(t); });
+  input.addEventListener("keydown", e=>{ if(e.key==="Enter"){ const t=input.value; input.value=""; aiSend(t); } });
+}
+
+setupAI();
 </script>
 </body>
 </html>
