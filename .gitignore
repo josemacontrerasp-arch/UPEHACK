@@ -1,0 +1,12 @@
+# Secretos: nunca subir keys al repo (es público)
+.env
+.env.*
+!.env.example
+
+# Vercel
+.vercel
+
+# Dependencias / SO
+node_modules/
+.DS_Store
+Thumbs.db
